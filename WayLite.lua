@@ -14,6 +14,7 @@ _G[addonName] = addon
 
 WayLite.name = addonName
 WayLite.CompatibilityMode = false -- disable /way command if another addon handles it
+WayLite.HasShownActivityMessage = false
 
 local frame = CreateFrame("Frame", addonName .. "EventFrame")
 frame:RegisterEvent("ADDON_LOADED");
@@ -35,11 +36,17 @@ end
 
 function WayLite:PLAYER_ENTERING_WORLD(...)
     self.CompatibilityMode = IsAddOnLoaded("TomTom") or IsAddOnLoaded("MapPinEnhanced")
-    if self.CompatibilityMode then
-        self:PrintMsg("WayLite is in compatibility mode. " .. WLCOLOR_CMD .. "/way|r commands will defer to other addons. Use " .. WLCOLOR_CMD .. "/waylite|r instead.")
-    else
-        SLASH_WAYLITE2 = "/way"
-        self:PrintMsg("WayLite active. Use " .. WLCOLOR_CMD .. "/way|r or " .. WLCOLOR_CMD .. "/waylite|r to add map pins.")
+    if not self.CompatibilityMode then
+        SLASH_WAYLITE2 = "/way" -- enable /way handling
+    end
+
+    if not self.HasShownActivityMessage then
+        self.HasShownActivityMessage = true
+        if self.CompatibilityMode then
+            self:PrintMsg("WayLite is in compatibility mode. " .. WLCOLOR_CMD .. "/way|r commands will defer to other addons. Use " .. WLCOLOR_CMD .. "/waylite|r instead.")
+        else
+            self:PrintMsg("WayLite active. Use " .. WLCOLOR_CMD .. "/way|r or " .. WLCOLOR_CMD .. "/waylite|r to add map pins.")
+        end
     end
 end
 
@@ -50,9 +57,11 @@ end
 function WayLite:GetPinCmdHere()
     local mapID = C_Map.GetBestMapForUnit("player")
     local pos = C_Map.GetPlayerMapPosition(mapID, "player")
-    local eb = DEFAULT_CHAT_FRAME.editBox
-    ChatEdit_ActivateChat(eb)
-    eb:Insert(string.format("/way %.2f, %.2f", pos.x*100, pos.y*100))
+    local cmdStr = string.format("/way %.2f, %.2f", pos.x*100, pos.y*100)
+    self:PrintMsg(cmdStr)
+    --local eb = DEFAULT_CHAT_FRAME.editBox
+    --ChatEdit_ActivateChat(eb)
+    --eb:Insert(cmdStr)
 end
 
 function WayLite:SetMapPin(x, y)
@@ -72,8 +81,8 @@ function WayLite:PrintHelp(errMsg)
     end
     DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_TITLE .. "WayLite help:|r")
     DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_CMD .. "/way " .. WLCOLOR_OPTIONAL .. " [zone]|r x, y|r " .. WLCOLOR_OPTIONAL .. "[name]|r -- Add a waypoint to the map. Zone and name parameters are ignored for compatibility with TomTom /way commands")
-    DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_CMD .. "/way here|r -- Add a waypoint to the map at your current location.")
-    DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_CMD .. "/way clear|r -- Remove the map pin.")
+    DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_CMD .. "/way here|r -- Get the " .. WLCOLOR_CMD .. "/way|r command for your current position.")
+    DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_CMD .. "/way remove|r -- Remove the map pin.")
 end
 
 SLASH_WAYLITE1="/waylite"
