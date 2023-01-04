@@ -5,6 +5,6 @@
 ## Notes: Simply creates map pins from /way commands for players that don't want to install TomTom or Map Pins Enhanced. (Use "/way x,y [description]")
 ## DefaultState: Enabled
 ## X-Category: Map
-## SavedVariables: WayLite
+## SavedVariables: WayLiteDB
 
 WayLite.lua

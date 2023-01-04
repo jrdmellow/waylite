@@ -4,34 +4,59 @@
 ]]
 
 local WLCOLOR_TITLE = "|cFFE6A009"
-local WLCOLOR_ERROR = "|cFFAA0000"
+local WLCOLOR_ERROR = "|cFFFF3333"
 local WLCOLOR_CMD = "|cFF00CCFF"
 local WLCOLOR_OPTIONAL = "|cFFCCCCCC"
 
+local WLTEXT_INVALID_USAGE = "Invalid " .. WLCOLOR_CMD .. "/way|r usage. See help below."
+
+local OptionsDefaults = {
+    QuietMode = false
+}
+
 local addonName, addon = ...
 local WayLite = addon
+WayLite.name = addonName
 _G[addonName] = addon
 
-WayLite.name = addonName
-WayLite.CompatibilityMode = false -- disable /way command if another addon handles it
-WayLite.HasShownActivityMessage = false
-
 local frame = CreateFrame("Frame", addonName .. "EventFrame")
+WayLite.eventFrame = frame
 frame:RegisterEvent("ADDON_LOADED");
-local function eventHandler(self, event, ...)
+frame:SetScript("OnEvent", function(this, event, ...)
     if event == "ADDON_LOADED" then
         if ... == addonName then
             WayLite:Initialize()
+            WayLite:UnregisterEvent("ADDON_LOADED")
         end
-    elseif type(addon[event]) == "function" then
-        addon[event](addon, ...)
+    elseif type(WayLite[event]) == "function" then
+        WayLite[event](WayLite, ...)
+    else
+        DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_ERROR .. "WayLite unhandled event:|r " .. event)
+    end
+end)
+
+function WayLite:PrintMsg(msg)
+    DEFAULT_CHAT_FRAME:AddMessage(string.format(WLCOLOR_TITLE .. "WayLite:|r %s", msg))
+end
+
+function WayLite:PrintMsgC(color, msg)
+    DEFAULT_CHAT_FRAME:AddMessage(string.format(WLCOLOR_TITLE .. "WayLite:|r " .. color .. "%s", msg))
+end
+
+function WayLite:RegisterEvent(event)
+    if type(WayLite[event]) == "function" then
+        self.eventFrame:RegisterEvent(event)
+    else
+        WayLite:PrintMsg(WLCOLOR_ERROR .. "Invalid event registration:|r " .. event)
     end
 end
-frame:SetScript("OnEvent", eventHandler);
-WayLite.eventFrame = frame
 
-function WayLite:Initialize()
-    self.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
+function WayLite:UnregisterEvent(event)
+    self.eventFrame:UnregisterEvent(event)
+end
+
+function WayLite:PLAYER_LOGOUT(...)
+    WayLiteDB = self.DB
 end
 
 function WayLite:PLAYER_ENTERING_WORLD(...)
@@ -40,18 +65,14 @@ function WayLite:PLAYER_ENTERING_WORLD(...)
         SLASH_WAYLITE2 = "/way" -- enable /way handling
     end
 
-    if not self.HasShownActivityMessage then
+    if not self.DB.QuietMode and not self.HasShownActivityMessage then
         self.HasShownActivityMessage = true
         if self.CompatibilityMode then
             self:PrintMsg("WayLite is in compatibility mode. " .. WLCOLOR_CMD .. "/way|r commands will defer to other addons. Use " .. WLCOLOR_CMD .. "/waylite|r instead.")
         else
-            self:PrintMsg("WayLite active. Use " .. WLCOLOR_CMD .. "/way|r or " .. WLCOLOR_CMD .. "/waylite|r to add map pins.")
+            self:PrintMsg("Use " .. WLCOLOR_CMD .. "/way|r or " .. WLCOLOR_CMD .. "/waylite|r to add map pins. Please report issues on github.")
         end
     end
-end
-
-function WayLite:PrintMsg(msg)
-    DEFAULT_CHAT_FRAME:AddMessage(string.format(WLCOLOR_TITLE .. "WayLite:|r %s", msg))
 end
 
 function WayLite:GetPinCmdHere()
@@ -59,30 +80,60 @@ function WayLite:GetPinCmdHere()
     local pos = C_Map.GetPlayerMapPosition(mapID, "player")
     local cmdStr = string.format("/way %.2f, %.2f", pos.x*100, pos.y*100)
     self:PrintMsg(cmdStr)
-    --local eb = DEFAULT_CHAT_FRAME.editBox
-    --ChatEdit_ActivateChat(eb)
-    --eb:Insert(cmdStr)
 end
 
 function WayLite:SetMapPin(x, y)
     local mapID = C_Map.GetBestMapForUnit("player")
     if not C_Map.CanSetUserWaypointOnMap(mapID) then
-        WayLite:PrintMsg("Cannot set waypoints on this map")
+        WayLite:PrintMsgC(WLCOLOR_ERROR, "Cannot set waypoints on this map")
         return
     end
     local mapPoint = UiMapPoint.CreateFromCoordinates(mapID, x, y, 0)
     C_Map.SetUserWaypoint(mapPoint)
-    self:PrintMsg(string.format("Map pin set!"))
+    self:PrintMsg("Map pin set!")
 end
 
 function WayLite:PrintHelp(errMsg)
     if errMsg then
         DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_TITLE .. "WayLite:|r " .. WLCOLOR_ERROR .. errMsg)
+    else
+        DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_TITLE .. "WayLite help:")
     end
-    DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_TITLE .. "WayLite help:|r")
     DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_CMD .. "/way " .. WLCOLOR_OPTIONAL .. " [zone]|r x, y|r " .. WLCOLOR_OPTIONAL .. "[name]|r -- Add a waypoint to the map. Zone and name parameters are ignored for compatibility with TomTom /way commands")
-    DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_CMD .. "/way here|r -- Get the " .. WLCOLOR_CMD .. "/way|r command for your current position.")
+    DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_CMD .. "/way here|r -- Get the " .. WLCOLOR_CMD .. "/way|r command for your current position for sharing.")
+    DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_CMD .. "/way options|r -- Show options")
     DEFAULT_CHAT_FRAME:AddMessage(WLCOLOR_CMD .. "/way remove|r -- Remove the map pin.")
+end
+
+function WayLite:InitializeOptions()
+    local options = CreateFrame("Frame")
+    options.name = self.name
+    self.OptionsFrame = options
+
+    local quietModeCB = CreateFrame("CheckButton", nil, options, "InterfaceOptionsCheckButtonTemplate")
+    quietModeCB:SetPoint("TOPLEFT", 20, -20)
+    quietModeCB.Text:SetText("Be quiet! (don't print the welcome message at startup)")
+    quietModeCB:SetChecked(self.DB.QuietMode)
+    quietModeCB:HookScript("OnClick", function(_, btn, down)
+        self.DB.QuietMode = quietModeCB:GetChecked()
+    end)
+
+    InterfaceOptions_AddCategory(options)
+end
+
+function WayLite:Initialize()
+    if not WayLiteDB then
+        WayLiteDB = OptionsDefaults
+    end
+    self.DB = WayLiteDB
+
+    self.CompatibilityMode = false -- disable /way command if another addon handles it
+    self.HasShownActivityMessage = false
+
+    self:InitializeOptions()
+
+    self:RegisterEvent("PLAYER_LOGOUT")
+    self:RegisterEvent("PLAYER_ENTERING_WORLD")
 end
 
 SLASH_WAYLITE1="/waylite"
@@ -105,6 +156,8 @@ SlashCmdList["WAYLITE"] = function(msg)
     elseif ltoken == "remove" or ltoken == "clear" then
         C_Map.ClearUserWaypoint()
         WayLite:PrintMsg("Map pin removed.")
+    elseif ltoken == "options" then
+	    InterfaceOptionsFrame_OpenToCategory(WayLite.OptionsFrame)
     elseif not tonumber(ltoken[1]) then
         -- Strip out the optional zone name
         local zoneEnd
@@ -116,14 +169,14 @@ SlashCmdList["WAYLITE"] = function(msg)
             end
         end
         if not zoneEnd then
-            WayLite:PrintHelp()
+            WayLite:PrintHelp(WLTEXT_INVALID_USAGE)
             return
         end
         local x,y = select(zoneEnd + 1, unpack(tokens))
         x = x and tonumber(x)
         y = y and tonumber(y)
         if not x or not y then
-            WayLite:PrintHelp("Invalid /way usage. See help below.")
+            WayLite:PrintHelp(WLTEXT_INVALID_USAGE)
             return
         end
         x, y = x / 100, y / 100
@@ -133,12 +186,12 @@ SlashCmdList["WAYLITE"] = function(msg)
         x = x and tonumber(x)
         y = y and tonumber(y)
         if not x or not y then
-            WayLite:PrintHelp("Invalid /way usage. See help below.")
+            WayLite:PrintHelp(WLTEXT_INVALID_USAGE)
             return
         end
         x, y = x / 100, y / 100
         WayLite:SetMapPin(x,y)
     else
-        WayLite:PrintHelp("Invalid /way usage. See help below.")
+        WayLite:PrintHelp(WLTEXT_INVALID_USAGE)
     end
 end
