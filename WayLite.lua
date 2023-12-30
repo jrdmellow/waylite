@@ -5,6 +5,7 @@
 
 local WLCOLOR_TITLE = "|cFFE6A009"
 local WLCOLOR_ERROR = "|cFFFF3333"
+local WLCOLOR_WARN = "|cFFFF3333"
 local WLCOLOR_CMD = "|cFF00CCFF"
 local WLCOLOR_OPTIONAL = "|cFFCCCCCC"
 
@@ -78,12 +79,12 @@ end
 function WayLite:GetPinCmdHere()
     local mapID = C_Map.GetBestMapForUnit("player")
     local pos = C_Map.GetPlayerMapPosition(mapID, "player")
-    local cmdStr = string.format("/way %.2f, %.2f", pos.x*100, pos.y*100)
-    self:PrintMsg(cmdStr)
+    local cmdStr = string.format("/way #%d %.2f, %.2f", mapID, pos.x*100, pos.y*100)
+    return cmdStr
 end
 
-function WayLite:SetMapPin(x, y)
-    local mapID = C_Map.GetBestMapForUnit("player")
+function WayLite:SetMapPin(x, y, zoneID)
+    local mapID = zoneID or C_Map.GetBestMapForUnit("player")
     if not C_Map.CanSetUserWaypointOnMap(mapID) then
         WayLite:PrintMsgC(WLCOLOR_ERROR, "Cannot set waypoints on this map")
         return
@@ -152,15 +153,30 @@ SlashCmdList["WAYLITE"] = function(msg)
     if msg == "" or msg == nil or ltoken == "help" then
         WayLite:PrintHelp()
     elseif ltoken == "here" then
-        WayLite:GetPinCmdHere()
+        WayLite:PrintMsg(WayLite:GetPinCmdHere())
     elseif ltoken == "remove" or ltoken == "clear" then
         C_Map.ClearUserWaypoint()
         WayLite:PrintMsg("Map pin removed.")
     elseif ltoken == "options" then
 	    InterfaceOptionsFrame_OpenToCategory(WayLite.OptionsFrame)
-    elseif not tonumber(ltoken[1]) then
+    elseif not tonumber(string.sub(ltoken, 1,1)) then
         -- Strip out the optional zone name
+        local zoneID
         local zoneEnd
+        if string.sub(ltoken, 1, 1) == "#" and string.len(ltoken) > 1 then
+            local parsedZoneID = tonumber(string.sub(ltoken, 2))
+            WayLite:PrintMsg("Zone ID detected " .. WLCOLOR_CMD .. parsedZoneID)
+            if not parsedZoneID then
+                WayLite:PrintHelp(WLTEXT_INVALID_USAGE)
+                return
+            end
+            zoneID = parsedZoneID
+        else
+            WayLite:PrintMsg("WayLite ignores zone names. To use a waypoint from another zone, use the map ID like so;")
+            WayLite:PrintMsg(WLCOLOR_CMD .. WayLite:GetPinCmdHere())
+        end
+
+        -- Strip zone name or ID
         for idx = 1, #tokens do
             local token = tokens[idx]
             if tonumber(token) then
@@ -168,10 +184,12 @@ SlashCmdList["WAYLITE"] = function(msg)
                 break
             end
         end
+
         if not zoneEnd then
             WayLite:PrintHelp(WLTEXT_INVALID_USAGE)
             return
         end
+
         local x,y = select(zoneEnd + 1, unpack(tokens))
         x = x and tonumber(x)
         y = y and tonumber(y)
@@ -180,8 +198,8 @@ SlashCmdList["WAYLITE"] = function(msg)
             return
         end
         x, y = x / 100, y / 100
-        WayLite:SetMapPin(x,y)
-    elseif tonumber(ltoken[1]) then
+        WayLite:SetMapPin(x,y,zoneID)
+    elseif tonumber(string.sub(ltoken, 1, 1)) then
         local x,y = unpack(tokens)
         x = x and tonumber(x)
         y = y and tonumber(y)
