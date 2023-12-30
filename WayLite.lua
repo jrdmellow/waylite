@@ -1,11 +1,10 @@
 --[[
     WayLite by FiveStar
-    (C) 2022
+    (C) 2023
 ]]
 
 local WLCOLOR_TITLE = "|cFFE6A009"
 local WLCOLOR_ERROR = "|cFFFF3333"
-local WLCOLOR_WARN = "|cFFFF3333"
 local WLCOLOR_CMD = "|cFF00CCFF"
 local WLCOLOR_OPTIONAL = "|cFFCCCCCC"
 
@@ -63,7 +62,7 @@ end
 function WayLite:PLAYER_ENTERING_WORLD(...)
     self.CompatibilityMode = IsAddOnLoaded("TomTom") or IsAddOnLoaded("MapPinEnhanced")
     if not self.CompatibilityMode then
-        SLASH_WAYLITE2 = "/way" -- enable /way handling
+        SLASH_WAYLITE3 = "/way" -- enable /way handling
     end
 
     if not self.DB.QuietMode and not self.HasShownActivityMessage then
@@ -107,19 +106,36 @@ function WayLite:PrintHelp(errMsg)
 end
 
 function WayLite:InitializeOptions()
-    local options = CreateFrame("Frame")
-    options.name = self.name
-    self.OptionsFrame = options
+    local Frame = CreateFrame("Frame")
+    Frame:SetAllPoints()
+    Frame.name = self.name
 
-    local quietModeCB = CreateFrame("CheckButton", nil, options, "InterfaceOptionsCheckButtonTemplate")
-    quietModeCB:SetPoint("TOPLEFT", 20, -20)
-    quietModeCB.Text:SetText("Be quiet! (don't print the welcome message at startup)")
-    quietModeCB:SetChecked(self.DB.QuietMode)
-    quietModeCB:HookScript("OnClick", function(_, btn, down)
-        self.DB.QuietMode = quietModeCB:GetChecked()
+    local Title = Frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    Title:SetPoint("TOPLEFT", 16, -16)
+    Title:SetText(Frame.name)
+
+    local QuietModeText = Frame:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
+    QuietModeText:SetPoint('TOPLEFT', Title, 'BOTTOMLEFT', 0, -8)
+    QuietModeText:SetText('Don\'t show the welcome message on start.')
+
+    local QuietMode = CreateFrame("CheckButton", nil, Frame, "InterfaceOptionsCheckButtonTemplate")
+    QuietMode:SetPoint("TOPLEFT", QuietModeText, "BOTTOMLEFT", 0, -8)
+    QuietMode.Text:SetText("Be quiet!")
+    QuietMode:SetChecked(self.DB.QuietMode)
+    QuietMode:HookScript("OnClick", function(_, btn, down)
+        self.DB.QuietMode = QuietMode:GetChecked()
     end)
 
-    InterfaceOptions_AddCategory(options)
+    local HelpTitle = Frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    HelpTitle:SetPoint("TOPLEFT", QuietMode, "BOTTOMLEFT", 0, -24)
+    HelpTitle:SetText("Help")
+
+    local HelpText = Frame:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
+    HelpText:SetPoint('TOPLEFT', HelpTitle, 'BOTTOMLEFT', 0, -8)
+    HelpText:SetText('Please report any issues on github directly; ' .. WLCOLOR_CMD .. 'github.com/jrdmellow/waylite|r')
+
+    InterfaceOptions_AddCategory(Frame)
+    self.OptionsFrame = Frame
 end
 
 function WayLite:Initialize()
@@ -138,6 +154,7 @@ function WayLite:Initialize()
 end
 
 SLASH_WAYLITE1="/waylite"
+SLASH_WAYLITE2="/wl"
 
 -- Much of this comes straight from TomTom
 local wrongseparator = "(%d)" .. (tonumber("1.1") and "," or ".") .. "(%d)"
