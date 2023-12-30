@@ -107,7 +107,6 @@ end
 
 function WayLite:InitializeOptions()
     local Frame = CreateFrame("Frame")
-    Frame:SetAllPoints()
     Frame.name = self.name
 
     local Title = Frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
