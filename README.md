@@ -3,12 +3,15 @@
 WayLite is a World of Warcraft addon that simply creates map pins from `/way` commands commonly shared by the WoW community for players that don't want to install [TomTom](https://www.curseforge.com/wow/addons/tomtom), [Map Pin Enhanced](https://www.curseforge.com/wow/addons/mappinenhanced) or similar multi-purpose addons. If you're looking for more map and waypoint features, check out these addons instead.
 
 _Copy the TomTom command_
+
 ![image](https://github.com/user-attachments/assets/107e8dda-72d2-45a5-b0c4-2033d7604c92)
 
 _Paste into chat_
+
 ![image](https://github.com/user-attachments/assets/65c56f6d-3aa0-43cb-9492-0c9ae5d6fb73)
 
 _Check your map!_
+
 ![image](https://github.com/user-attachments/assets/c20b3309-70b0-4be1-8d85-09f2a66b71b5)
 
 ## Usage
