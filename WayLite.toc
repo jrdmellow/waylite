@@ -1,6 +1,6 @@
-## Interface: 100200
+## Interface: 110000
 ## Title: WayLite
-## Version: 0.2
+## Version: 0.3
 ## Author: FiveStar
 ## Notes: Simply creates map pins from /way commands for players that don't want to install TomTom or Map Pins Enhanced. (Use "/way x,y [description]")
 ## DefaultState: Enabled

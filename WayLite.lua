@@ -1,6 +1,6 @@
 --[[
     WayLite by FiveStar
-    (C) 2023
+    (C) 2024
 ]]
 
 local WLCOLOR_TITLE = "|cFFE6A009"
@@ -109,31 +109,40 @@ function WayLite:InitializeOptions()
     local Frame = CreateFrame("Frame")
     Frame.name = self.name
 
-    local Title = Frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    Title:SetPoint("TOPLEFT", 16, -16)
-    Title:SetText(Frame.name)
+    Frame:SetScript("OnShow", function(Frame)
+        local Title = Frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+        Title:SetPoint("TOPLEFT", 16, -16)
+        Title:SetText(Frame.name)
 
-    local QuietModeText = Frame:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
-    QuietModeText:SetPoint('TOPLEFT', Title, 'BOTTOMLEFT', 0, -8)
-    QuietModeText:SetText('Don\'t show the welcome message on start.')
+        local QuietModeText = Frame:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
+        QuietModeText:SetPoint('TOPLEFT', Title, 'BOTTOMLEFT', 0, -8)
+        QuietModeText:SetText('Don\'t show the welcome message on start.')
 
-    local QuietMode = CreateFrame("CheckButton", nil, Frame, "InterfaceOptionsCheckButtonTemplate")
-    QuietMode:SetPoint("TOPLEFT", QuietModeText, "BOTTOMLEFT", 0, -8)
-    QuietMode.Text:SetText("Be quiet!")
-    QuietMode:SetChecked(self.DB.QuietMode)
-    QuietMode:HookScript("OnClick", function(_, btn, down)
-        self.DB.QuietMode = QuietMode:GetChecked()
+        local QuietMode = CreateFrame("CheckButton", "ChkQuietMode", Frame, "InterfaceOptionsCheckButtonTemplate")
+        QuietMode:SetPoint("TOPLEFT", QuietModeText, "BOTTOMLEFT", 0, -8)
+        QuietMode.Text:SetText("Be quiet!")
+        QuietMode:SetChecked(self.DB.QuietMode)
+        QuietMode:SetScript("OnClick", function(self)
+            self.DB.QuietMode = self:GetChecked()
+        end)
+
+        local HelpTitle = Frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+        HelpTitle:SetPoint("TOPLEFT", QuietMode, "BOTTOMLEFT", 0, -24)
+        HelpTitle:SetText("Help")
+
+        local HelpText = Frame:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
+        HelpText:SetPoint('TOPLEFT', HelpTitle, 'BOTTOMLEFT', 0, -8)
+        HelpText:SetText('Please report any issues on github directly; ' .. WLCOLOR_CMD .. 'github.com/jrdmellow/waylite|r')
     end)
 
-    local HelpTitle = Frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    HelpTitle:SetPoint("TOPLEFT", QuietMode, "BOTTOMLEFT", 0, -24)
-    HelpTitle:SetText("Help")
+    if InterfaceOptions_AddCategory then
+        InterfaceOptions_AddCategory(Frame)
+    else
+        local category, layout = Settings.RegisterCanvasLayoutCategory(Frame, Frame.name);
+        Settings.RegisterAddOnCategory(category);
+        WayLite.SettingsCategory = category
+    end
 
-    local HelpText = Frame:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
-    HelpText:SetPoint('TOPLEFT', HelpTitle, 'BOTTOMLEFT', 0, -8)
-    HelpText:SetText('Please report any issues on github directly; ' .. WLCOLOR_CMD .. 'github.com/jrdmellow/waylite|r')
-
-    InterfaceOptions_AddCategory(Frame)
     self.OptionsFrame = Frame
 end
 
@@ -174,7 +183,11 @@ SlashCmdList["WAYLITE"] = function(msg)
         C_Map.ClearUserWaypoint()
         WayLite:PrintMsg("Map pin removed.")
     elseif ltoken == "options" then
-	    InterfaceOptionsFrame_OpenToCategory(WayLite.OptionsFrame)
+        if InterfaceOptionsFrame_OpenToCategory then
+	        InterfaceOptionsFrame_OpenToCategory(WayLite.OptionsFrame)
+        else
+            Settings.OpenToCategory(WayLite.SettingsCategory.ID)
+        end
     elseif not tonumber(string.sub(ltoken, 1,1)) then
         -- Strip out the optional zone name
         local zoneID
