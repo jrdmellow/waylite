@@ -60,7 +60,7 @@ function WayLite:PLAYER_LOGOUT(...)
 end
 
 function WayLite:PLAYER_ENTERING_WORLD(...)
-    self.CompatibilityMode = IsAddOnLoaded("TomTom") or IsAddOnLoaded("MapPinEnhanced")
+    self.CompatibilityMode = C_AddOns.IsAddOnLoaded("TomTom") or C_AddOns.IsAddOnLoaded("MapPinEnhanced")
     if not self.CompatibilityMode then
         SLASH_WAYLITE3 = "/way" -- enable /way handling
     end
@@ -121,9 +121,9 @@ function WayLite:InitializeOptions()
         local QuietMode = CreateFrame("CheckButton", "ChkQuietMode", Frame, "InterfaceOptionsCheckButtonTemplate")
         QuietMode:SetPoint("TOPLEFT", QuietModeText, "BOTTOMLEFT", 0, -8)
         QuietMode.Text:SetText("Be quiet!")
-        QuietMode:SetChecked(self.DB.QuietMode)
+        QuietMode:SetChecked(WayLite.DB.QuietMode)
         QuietMode:SetScript("OnClick", function(self)
-            self.DB.QuietMode = self:GetChecked()
+            WayLite.DB.QuietMode = self:GetChecked()
         end)
 
         local HelpTitle = Frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
